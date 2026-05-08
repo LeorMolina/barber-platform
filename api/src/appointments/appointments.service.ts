@@ -1,50 +1,25 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AppointmentsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createAppointmentDto: CreateAppointmentDto) {
-    const appointmentDate = new Date(createAppointmentDto.date);
-    const now = new Date();
-
-    // REGRA 1: Não permitir agendamentos no passado
-    if (appointmentDate < now) {
-      throw new BadRequestException('Não é possível agendar em uma data que já passou.');
-    }
-
-    // REGRA 2: Bloquear horários duplicados (Overbooking)
-    const conflictingAppointment = await this.prisma.appointment.findFirst({
-      where: {
-        barberId: createAppointmentDto.barberId,
-        date: appointmentDate,
-      },
-    });
-
-    if (conflictingAppointment) {
-      throw new BadRequestException('Este barbeiro já possui um agendamento neste exato horário.');
-    }
-
-    // Se passou pelas regras, salva no banco de dados
+  // Cria o agendamento no banco
+  async create(data: Prisma.AppointmentUncheckedCreateInput) {
     return this.prisma.appointment.create({
-      data: {
-        date: appointmentDate,
-        barberId: createAppointmentDto.barberId,
-        clientId: createAppointmentDto.clientId,
-        serviceId: createAppointmentDto.serviceId,
-      },
+      data,
+      include: { service: true } // Já traz os dados do serviço (nome, preço) junto
     });
   }
 
-  async findAll() {
+  // Busca todos os agendamentos de um telefone específico
+  async findByPhone(phone: string) {
     return this.prisma.appointment.findMany({
-      include: {
-        barber: true,
-        client: true,
-        service: true,
-      },
+      where: { phone },
+      include: { service: true },
+      orderBy: [{ date: 'asc' }, { time: 'asc' }] // Organiza por data e hora
     });
   }
 }

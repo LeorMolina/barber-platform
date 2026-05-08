@@ -7,38 +7,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Barber {
-  id           String        @id @default(uuid())
-  name         String
-  email        String?       @unique
-  appointments Appointment[]
-}
-
-model Client {
-  id           String        @id @default(uuid())
-  name         String
-  phone        String
-  appointments Appointment[]
-}
-
+// Tabela de Serviços (O cardápio da barbearia)
 model Service {
   id           String        @id @default(uuid())
   name         String
+  duration     Int
   price        Float
-  duration     Int           // tempo em minutos
-  appointments Appointment[]
+  createdAt    DateTime      @default(now())
+  
+  // Relacionamento: Um serviço pode ter vários agendamentos
+  appointments Appointment[] 
 }
 
+// NOVA TABELA: Agendamentos dos Clientes
 model Appointment {
   id        String   @id @default(uuid())
-  date      DateTime
+  name      String   // Nome do cliente
+  phone     String   // WhatsApp do cliente
+  date      String   // Data escolhida
+  time      String   // Horário escolhido
   
-  barberId  String
-  barber    Barber   @relation(fields: [barberId], references: [id])
-  
-  clientId  String
-  client    Client   @relation(fields: [clientId], references: [id])
-  
+  // Relacionamento com o Serviço escolhido
   serviceId String
   service   Service  @relation(fields: [serviceId], references: [id])
+  
+  createdAt DateTime @default(now())
 }
